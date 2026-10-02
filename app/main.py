@@ -1,53 +1,80 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from app.brain import SecondBrain
-from app.web import WebKnowledge
+from typing import Optional, List
+from app.brain.second_brain import SecondBrain
+from app.config import BING_SEARCH_KEY, OPENAI_API_KEY
+from app.services.web_service import EmbeddingService
 
-app = FastAPI(title="AI Second Brain Advanced")
-brain = SecondBrain()
-web_knowledge = WebKnowledge()
+app = FastAPI(
+    title="AI Second Brain Production",
+    description="Production-grade semantic memory + web search brain for AI agents",
+    version="1.0.0"
+)
+
+# CORS for easy deployment on any website
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize embedding service
+embedding_service = EmbeddingService(api_key=OPENAI_API_KEY)
 
 class MemoryInput(BaseModel):
     text: str
     category: str = "general"
-    source: str | None = None
-    tags: list[str] | None = None
+    source: str = "user"
+    tags: Optional[List[str]] = None
+    importance: float = 0.5
 
 class SearchInput(BaseModel):
     query: str
+    limit: int = 5
 
-class WebInput(BaseModel):
-    url: str
-    content: str
+class RecallAndSearchInput(BaseModel):
+    query: str
+    local_limit: int = 3
+    web_limit: int = 3
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "service": "advanced-ai-second-brain"}
+    return {"status": "ok", "service": "second-brain-production"}
 
 @app.post("/remember")
-def remember(payload: MemoryInput):
-    result = brain.store_memory(payload.text, category=payload.category, source=payload.source, tags=payload.tags)
+def remember(payload: MemoryInput, user_id: Optional[str] = None):
+    brain = SecondBrain(user_id=user_id, bing_key=BING_SEARCH_KEY, embedding_service=embedding_service)
+    result = brain.remember(payload.text, payload.category, payload.source, payload.tags, payload.importance)
     return {"status": "saved", "memory": result}
 
-@app.post("/search")
-def search(payload: SearchInput):
-    results = brain.retrieve_memory(payload.query)
+@app.post("/recall")
+def recall(payload: SearchInput, user_id: Optional[str] = None):
+    brain = SecondBrain(user_id=user_id, bing_key=BING_SEARCH_KEY, embedding_service=embedding_service)
+    results = brain.recall(payload.query, payload.limit)
+    return {"query": payload.query, "results": results}
+
+@app.post("/search-web")
+def search_web(payload: SearchInput, user_id: Optional[str] = None):
+    brain = SecondBrain(user_id=user_id, bing_key=BING_SEARCH_KEY, embedding_service=embedding_service)
+    results = brain.search_web(payload.query, payload.limit)
+    return {"query": payload.query, "results": results}
+
+@app.post("/recall-and-search")
+def recall_and_search(payload: RecallAndSearchInput, user_id: Optional[str] = None):
+    brain = SecondBrain(user_id=user_id, bing_key=BING_SEARCH_KEY, embedding_service=embedding_service)
+    results = brain.recall_and_search(payload.query, payload.local_limit, payload.web_limit)
     return {"query": payload.query, "results": results}
 
 @app.post("/chat")
-def chat(payload: MemoryInput):
+def chat(payload: MemoryInput, user_id: Optional[str] = None):
+    brain = SecondBrain(user_id=user_id, bing_key=BING_SEARCH_KEY, embedding_service=embedding_service)
     response = brain.reply(payload.text)
     return {"response": response}
 
 @app.get("/memory")
-def memory():
-    return {"memory": brain.list_memory()}
-
-@app.get("/memory/summary")
-def memory_summary():
-    return {"summary": brain.summarize_memory()}
-
-@app.post("/web-cache")
-def web_cache(payload: WebInput):
-    cached = web_knowledge.fetch(payload.url, payload.content)
-    return {"status": "cached", "result": cached}
+def list_memory(user_id: Optional[str] = None):
+    brain = SecondBrain(user_id=user_id, bing_key=BING_SEARCH_KEY, embedding_service=embedding_service)
+    return {"memory": brain.list_all_memory()}

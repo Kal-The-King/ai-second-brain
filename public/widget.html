@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Second Brain Widget</title>
+    <style>
+        .second-brain-widget {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            max-width: 500px;
+            background: white;
+        }
+        .sb-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .sb-button {
+            background: #0066cc;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        .sb-button:hover {
+            background: #0052a3;
+        }
+        .sb-results {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="second-brain-widget">
+        <h3>Second Brain</h3>
+        <input type="text" class="sb-input" id="sbInput" placeholder="Remember something or search...">
+        <button class="sb-button" onclick="sbRemember()">Remember</button>
+        <button class="sb-button" onclick="sbRecall()">Recall</button>
+        <button class="sb-button" onclick="sbSearchWeb()">Search Web</button>
+        <div class="sb-results" id="sbResults"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+
+        async function sbRemember() {
+            const text = document.getElementById('sbInput').value;
+            if (!text) return;
+            const response = await fetch(API_URL + '/remember', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, category: 'general' })
+            });
+            const data = await response.json();
+            document.getElementById('sbResults').innerHTML = 'Saved: ' + text;
+        }
+
+        async function sbRecall() {
+            const text = document.getElementById('sbInput').value;
+            if (!text) return;
+            const response = await fetch(API_URL + '/recall', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: text, limit: 5 })
+            });
+            const data = await response.json();
+            const html = data.results.map(r => `<p>${r.text}</p>`).join('');
+            document.getElementById('sbResults').innerHTML = html || 'No results';
+        }
+
+        async function sbSearchWeb() {
+            const text = document.getElementById('sbInput').value;
+            if (!text) return;
+            const response = await fetch(API_URL + '/search-web', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: text, limit: 5 })
+            });
+            const data = await response.json();
+            const html = data.results.map(r => `<p><a href="${r.url}">${r.title}</a></p><p>${r.snippet}</p>`).join('');
+            document.getElementById('sbResults').innerHTML = html || 'No results';
+        }
+    </script>
+</body>
+</html>
