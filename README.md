@@ -1,12 +1,10 @@
-# AI Second Brain
+# AI Second Brain Advanced
 
-A lightweight modular second-brain system for AI agents.
-
-## Features
-- Memory storage
-- Searchable memory recall
-- Simple chat endpoint
-- Easy to plug into other projects
+This version adds:
+- richer memory categories
+- web content caching
+- web knowledge hooks
+- easier extension for semantic search and agent memory
 
 ## Run locally
 
@@ -23,6 +21,6 @@ uvicorn app.main:app --reload
 from app.brain import SecondBrain
 
 brain = SecondBrain()
-brain.store_memory("The user prefers concise answers.")
-print(brain.reply("What do I prefer?"))
+brain.store_memory("The user prefers structured answers.", category="preferences")
+print(brain.reply("What kind of responses do I prefer?"))
 ```

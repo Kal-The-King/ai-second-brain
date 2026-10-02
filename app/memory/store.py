@@ -18,20 +18,25 @@ class MemoryStore:
     def _write(self, data):
         self.file_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    def add(self, text: str):
+    def add(self, text: str, category: str = "general"):
         items = self._read()
-        items.append({
+        item = {
             "id": len(items) + 1,
             "text": text,
+            "category": category,
             "timestamp": datetime.utcnow().isoformat()
-        })
+        }
+        items.append(item)
         self._write(items)
-        return items[-1]
+        return item
 
     def list(self):
         return self._read()
 
     def search(self, query: str):
         items = self._read()
-        query = query.lower()
-        return [item for item in items if query in item["text"].lower()]
+        q = query.lower()
+        return [item for item in items if q in item["text"].lower()]
+
+    def clear(self):
+        self._write([])
