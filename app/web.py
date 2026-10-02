@@ -1,4 +1,4 @@
-import json
+import re
 from pathlib import Path
 
 from app.config import WEB_CACHE_DIR
@@ -10,7 +10,8 @@ class WebMemory:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     def save_page(self, url: str, content: str):
-        path = self.cache_dir / (url.replace("https://", "").replace("http://", "").replace("/", "_") + ".txt")
+        clean_url = re.sub(r"[^a-zA-Z0-9]", "_", url)
+        path = self.cache_dir / f"{clean_url[:120]}.txt"
         path.write_text(content, encoding="utf-8")
         return {"url": url, "path": str(path)}
 
@@ -26,5 +27,5 @@ class WebKnowledge:
         return self.web_memory.save_page(url, content)
 
     def summarize(self, content: str):
-        sentences = [s.strip() for s in content.split(".") if s.strip()]
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", content) if s.strip()]
         return " ".join(sentences[:3])
